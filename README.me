@@ -1,0 +1,23 @@
+1.for ch341 SPI:
+  driver:
+  download from https://github.com/frank-zago/ch341-i2c-spi-gpio
+    # git clone https://github.com/frank-zago/ch341-i2c-spi-gpio.git
+    # cd ch341-i2c-spi-gpio;make -j$(nproc);sudo make install
+
+  for start SPI master:
+    #!/bin/bash
+    echo "spidev 0" |sudo tee /sys/class/spi_master/spi0/new_device
+    echo spidev |sudo tee /sys/bus/spi/devices/spi0.0/driver_override
+    echo spi0.0 |sudo tee /sys/bus/spi/drivers/spidev/bind
+
+2.for st7920 LCD module connect:
+  hardware link reference here:
+    https://thesolaruniverse.wordpress.com/2017/08/11/an-128x64-graphic-lcd-display-with-st7920-controller-for-the-arduino-displaying-temperature-and-relative-humidity/
+  st7920 needed connect to 5v, but signal can be 3.3v level.
+  st7920 pin4 -> 3.3v or 5v
+  st7920 pin5 -> CH341 MOSI
+  st7920 pin6 -> CH341 CLK
+  st7920 pin15 -> GND
+    work only needed 2 wired connect to CH341.
+
+  
