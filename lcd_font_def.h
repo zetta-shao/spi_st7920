@@ -1,0 +1,5 @@
+#ifndef __INCL_FONTDEF__
+#define __INCL_FONTDEF__
+//#define LCDFONT_INCLUDE_FONT_6x8
+#define LCDFONT_INCLUDE_FONT_11x18
+#endif
