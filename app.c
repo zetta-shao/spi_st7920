@@ -1,7 +1,12 @@
-#include "gpiodef.h"
-#include "st7920.h"
 #include <stdint.h>
 #include <stdio.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
+#include <linux/ioctl.h>
+#include <linux/types.h>
+#include "gpiodef.h"
+#include "st7920.h"
 #include "lcd_fonts.h"
 
 #define IO_DATA_CMD		(2)
@@ -35,8 +40,22 @@ int main(int argc, char** argv) {
         st7920_string(&d, 0, 3, "st7943 test");
     }
     if(1) {
-        st7920_cursor(&d, 0, 0);
-        st7920_strin2(&d, "!!!!!!!!", &Font_11x18, 1);
+        char str[20] = { 0 }, *p;
+        int x, y, z;
+        for(y=0, x=32; y<64; y+=16){
+            for(z=x+16,p=str; x<z; x++,p++) *p=(char)x;
+            *p=0; 
+            st7920_cursor(&d, 0, y);
+            st7920_strin2(&d, str, &Font_8x16, 1);
+        }
+        st7920_update(&d);
+        sleep(1);
+        for(y=48, x=95; y>=0; y-=16){
+            for(z=x-15,p=str; x>=z; x--,p++) *p=(char)x;
+            *p=0; 
+            st7920_cursor(&d, 0, y);
+            st7920_strin2(&d, str, &Font_8x16, 1);
+        }
         st7920_update(&d);
     }
     swspi_spifree(&sspi1);

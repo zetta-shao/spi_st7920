@@ -86,14 +86,13 @@ void st7920_string(st7920_t *d,uint8_t x,uint8_t y,char *s) {
 }
 
 void st7920_fill(st7920_t *d, uint8_t color) { //�������RAM
-	uint8_t y;
-	uint32_t *_ps = (uint32_t*)d->buf;
+	uint8_t y, z=ST7920_WIDTH/4;
 	st7920_cmd(d, 0x34);
-	memset(d->buf, color, ST7920_WIDTH/8);	
-	for(y=128; y<192; y++) {
+	memset(d->buf, color, z);	
+	for(y=128; y<160; y++) {
 		st7920_cmd(d, y); //row from, 0-63
 		st7920_cmd(d, 128); //col from, 0-7, w=128
-		st7920_pdata(d, _ps, ST7920_WIDTH/8);
+		st7920_pdata(d, d->buf, z);
 	}
 	st7920_cmd(d, 0x36);
 }
@@ -110,15 +109,34 @@ void st7920_gfxmode(st7920_t *d, uint8_t mode) {
 	}
 }
 
+/*	ST7920 had 256(w)x64(h)bit, total 2KiB GDRAM, in 128x64pixel product, 
+	GDRAM operation mode is 256x32pixel. Imagination 128x64 is 256x32 in real,
+	also row address only accept 0-31, but col address accept 0-15 
+	(16bit data per one address, 16x16=256bit), and auto accumulation 
+	able from 0 to 15 in the st7920.
+	col address bit 4 determined display at y position 0-31 or 32-63.
+	for example, row=1,col=1 (cmd 0x81,0x81), display position is 2,2,
+	row=1,col=9 (cmd 0x81,0x89),display position is 2,34	
+*/ 
 void st7920_update(st7920_t *d) {
 	int x, y;
 	uint32_t *_ps = (uint32_t*)d->buf;
 	uint32_t _t[8]; uint8_t *_pt=(uint8_t*)_t;	
 	st7920_cmd(d, 0x34);
-	for(y=128, x=128; y<192; y++, _ps+=4) {
+	for(y=0x80; y<0xa0; y++, _ps+=4) {
 		st7920_cmd(d, y); //row from, 0-63
-		st7920_cmd(d, 128); //col from, 0-7, w=128
-		for(x=0; x<4; x++) { //for one row.
+		st7920_cmd(d, 0x80); //col from, 0-7, w=128
+		for(x=0; x<4; x++) { //for one row, total 32byte
+			_t[2] = (_ps[x] & 0xf0f0f0f0);
+			_t[3] = (_ps[x] & 0x0f0f0f0f) << 4;
+			_pt[0] = _pt[ 8]; _pt[1] = _pt[12];
+			_pt[2] = _pt[ 9]; _pt[3] = _pt[13];
+			_pt[4] = _pt[10]; _pt[5] = _pt[14];
+			_pt[6] = _pt[11]; _pt[7] = _pt[15];
+			st7920_pdata(d, _t, 8);
+		}
+
+		for(x=ST7920_WIDTH; x<ST7920_WIDTH+4; x++) { //for one row, total 8byte
 			_t[2] = (_ps[x] & 0xf0f0f0f0);
 			_t[3] = (_ps[x] & 0x0f0f0f0f) << 4;
 			_pt[0] = _pt[ 8]; _pt[1] = _pt[12];
@@ -153,18 +171,23 @@ char st7920_WriteChar2(st7920_t *d, uint8_t ch, FontDef *font, uint8_t color) {
         uint8_t *px, m;
         px = ((uint8_t*)font->data);
 	//printf("--3-1--\n");
-        if(font->bBigTable == 0)
-            px += (ch - 32) * font->FontWidth;
-        else
-            px += (ch - 1) * font->FontWidth;
+        if(font->bBigTable == 0) px += (ch - 32) * font->FontWidth;
+        else px += (ch - 1) * font->FontWidth;
 
         for(i = 0; i < font->FontWidth; i++) {
             for(m=0x80,j=0; j<font->FontHeight; j++, m>>=1) {
                 st7920_DrawPixel(d, d->CurrentX + i, (d->CurrentY + j), (px[i] & m) ? color : !color);
-				//st7920_DrawPixel(d, (d->CurrentY + j), d->CurrentX + i, (px[i] & m) ? color : !color);
             }
         }
-
+	} else if(font->FontWidth==8 && font->FontHeight==16) {
+        uint8_t *px, m;
+        if (ch < 32 || ch > 126) return 0;
+        px = (uint8_t*)font->data + ((ch-32)*font->FontHeight);
+        for(i = 0; i < font->FontHeight; i++) {
+            for(m=0x80,j=0; j<font->FontWidth; j++, m>>=1) {
+                st7920_DrawPixel(d, d->CurrentX + j, (d->CurrentY + i), (px[i] & m) ? color : !color);
+            }
+        }
     } else {
         uint16_t *px, m;
 	//printf("--3-2--\n");
@@ -182,6 +205,5 @@ char st7920_WriteChar2(st7920_t *d, uint8_t ch, FontDef *font, uint8_t color) {
 }
 
 void st7920_strin2(st7920_t *d, char *s, FontDef *font, uint8_t color) {
-	printf("--1--\n");
 	while(*s) { st7920_WriteChar2(d, *s, font, color); s++; }
 }
