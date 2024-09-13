@@ -4,14 +4,22 @@
 #define __LCDFONT_FONTS_H__
 
 #include "lcd_font_def.h"
+#include "lcd_fontdraw.h"
 
-typedef struct {
+#define FONT_FLAG_WPTR	0x01
+#define FONT_FLAG_VERT	0x02
+#define FONT_FLAG_BTAB	0x04
+
+typedef struct FontDef FontDef;
+
+struct FontDef {
 	const uint8_t FontWidth;    /*!< Font width in pixels */
 	const uint8_t FontHeight;   /*!< Font height in pixels */
-    const uint8_t bBigTable; //0 mean code table from 32-127, 1 mean code table 1-255
+    //const uint8_t bBigTable; //0 mean code table from 32-127, 1 mean code table 1-255
+	const uint8_t flags;
     const uint8_t unused1;
 	const uint16_t *data; /*!< Pointer to data font data array */
-} FontDef;
+};
 
 //typedef struct {
 //    const uint8_t FontWidth;    /*!< Font width in pixels */
@@ -33,9 +41,6 @@ extern FontDef Font_8x16;
 #endif
 #ifdef LCDFONT_INCLUDE_FONT_11x18
 extern FontDef Font_11x18;
-#endif
-#ifdef LCDFONT_INCLUDE_FONT_16x8
-extern FontDef Font_16x8;
 #endif
 #ifdef LCDFONT_INCLUDE_FONT_16x26
 extern FontDef Font_16x26;

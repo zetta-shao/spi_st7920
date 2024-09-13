@@ -39,8 +39,18 @@
 
 #define ST7920_WIDTH           128
 #define ST7920_HEIGHT          64
+#define ST7920_GFXMODE			0x100
 
-typedef struct tag_st7920 {
+typedef struct st7920_t st7920_t;
+
+struct st7920_t {
+	lcddev_t	d;
+	swspi_t 	*pDev;
+	spi_gpio_t	*rs; //en
+	uint8_t		buf[1024]; //for 128x64 pixel
+};
+
+/*typedef struct {
 	struct {
 	uint32_t	CurrentX : 10;
 	uint32_t	CurrentY : 10;
@@ -53,9 +63,9 @@ typedef struct tag_st7920 {
 	//spi_gpio_t	*clk; //clk
 	//spi_gpio_t	*sid; //mosi
 	uint8_t		buf[1024]; //for 128x64 pixel
-} st7920_t;
+} st7920_t;*/
 
-void st7920_init(st7920_t *d, swspi_t *spi, spi_gpio_t *rs, spi_gpio_t *psb);
+void st7920_init(st7920_t *d, swspi_t *spi, spi_gpio_t *rs, void *pvFontDef);
 void st7920_cmd(st7920_t *d, uint8_t Cbyte);
 void st7920_data(st7920_t *d, uint8_t Dbyte );
 void st7920_cursor(st7920_t *d, uint8_t x, uint8_t y);

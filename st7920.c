@@ -15,13 +15,24 @@ void st7920_set_rs(st7920_t *d, uint8_t val) { (void)d; (void)val; } //enable, a
 //void st7920_set_sclk(st7920_t *d, uint8_t val) { (void)d; (void)val; }
 //void st7920_set_sid(st7920_t *d, uint8_t val) { (void)d; (void)val; }
 
-void st7920_init(st7920_t *d, swspi_t *spi, spi_gpio_t *rs, spi_gpio_t *psb) {
+void st7920_init(st7920_t *d, swspi_t *spi, spi_gpio_t *rs, void *pvFontDef) {
 	if(spi) d->pDev = spi; else d->pDev = NULL;
-	//if(rs) d->rs = rs; else d->rs = NULL;
+	if(rs) d->rs = rs; else d->rs = NULL;
 	//if(psb) d->psb = psb; else d->psb = NULL;
 	//if(rs) { swspi_setgpmode(rs, 1); st7920_set_rs(d, 0); } //LCD_RS_1;  //CSһֱ���ߣ�ʹ��Һ������ֱ�ӽ�VCC��
 	//if(psb) { swspi_setgpmode(psb, 1); st7920_set_psb(d, 0); } //LCD_PSB_0; //һֱ���ͣ��ô��ڷ�ʽ���� ����ֱ�ӽӵأ�
-	d->CurrentX = 0; d->CurrentY = 0;
+	d->d.curX=0; d->d.curY=0; //d->CurrentX = 0; d->CurrentY = 0;
+    d->d.flags = (FONTDRAW_HEIGHTMUL | FONTDRAW_WIDTHDIV );
+    d->d.frameWidth = 128;
+    d->d.frameHeight = 64;
+    d->d.heightScale = 4;
+    d->d.widthScale = 3;
+    d->d.posmask = 7;
+    d->d.invposmask = 7; //position from 7-0 to 0-7
+    d->d.oneLineOffsetSize = 16;
+    d->d.pFrameBuf = d->buf;
+    if(pvFontDef) d->d.pFont = (struct FontDef*)pvFontDef;
+
 	delay_ms(40);
 	st7920_cmd(d, LCD_BASIC); //0x30
 	delay_ms(10);
@@ -74,7 +85,8 @@ void st7920_cursor(st7920_t *d, uint8_t x, uint8_t y) {
 	k |= (y & 1) << 4;
 	k |= (y & 2) << 2;
 	k += x;
-	d->CurrentX = x; d->CurrentY = y;
+	//d->CurrentX = x; d->CurrentY = y;
+	d->d.curX=x; d->d.curY=y;
 	st7920_cmd(d, k);
 }
 
@@ -101,11 +113,11 @@ void st7920_gfxmode(st7920_t *d, uint8_t mode) {
 	if(mode) { 
 		st7920_cmd(d, LCD_EXTEND); 
 		st7920_cmd(d, LCD_GFXMODE);
-		d->mode = 1;
+		d->d.flags |= ST7920_GFXMODE;
 	} else { 
 		st7920_cmd(d, LCD_EXTEND); 
 		st7920_cmd(d, LCD_TXTMODE); 
-		d->mode = 0;
+		d->d.flags &= ~ST7920_GFXMODE;
 	}
 }
 
@@ -163,44 +175,56 @@ void st7920_DrawPixel(st7920_t *d, uint8_t x, uint8_t y, uint8_t color) {
 // 127-255 => 126-254
 char st7920_WriteChar2(st7920_t *d, uint8_t ch, FontDef *font, uint8_t color) {
     uint32_t i, j;
+	uint32_t posx = d->d.curX, posy = d->d.curY;
     if(ch == 0) return 0;
-    if (ST7920_WIDTH < (d->CurrentX + font->FontWidth) ||
-        ST7920_HEIGHT < (d->CurrentY + font->FontHeight)) { return 0; }
+    //if (ST7920_WIDTH < (d->CurrentX + font->FontWidth) ||
+    //    ST7920_HEIGHT < (d->CurrentY + font->FontHeight)) { return 0; }
+    if (ST7920_WIDTH < (d->d.curX + font->FontWidth) ||
+        ST7920_HEIGHT < (d->d.curY + font->FontHeight)) { return 0; }
 	//printf("--2--\n");
-    if(font->FontHeight <= 8) {
-        uint8_t *px, m;
-        px = ((uint8_t*)font->data);
-	//printf("--3-1--\n");
-        if(font->bBigTable == 0) px += (ch - 32) * font->FontWidth;
-        else px += (ch - 1) * font->FontWidth;
-
-        for(i = 0; i < font->FontWidth; i++) {
-            for(m=0x80,j=0; j<font->FontHeight; j++, m>>=1) {
-                st7920_DrawPixel(d, d->CurrentX + i, (d->CurrentY + j), (px[i] & m) ? color : !color);
-            }
-        }
-	} else if(font->FontWidth==8 && font->FontHeight==16) {
-        uint8_t *px, m;
-        if (ch < 32 || ch > 126) return 0;
-        px = (uint8_t*)font->data + ((ch-32)*font->FontHeight);
-        for(i = 0; i < font->FontHeight; i++) {
-            for(m=0x80,j=0; j<font->FontWidth; j++, m>>=1) {
-                st7920_DrawPixel(d, d->CurrentX + j, (d->CurrentY + i), (px[i] & m) ? color : !color);
-            }
-        }
-    } else {
+	if(font->flags & FONT_FLAG_WPTR) {
         uint16_t *px, m;
-	//printf("--3-2--\n");
-        if (ch < 32 || ch > 126) return 0;
-        px = (uint16_t*)font->data + ((ch-32)*font->FontHeight);
-        for(i = 0; i < font->FontHeight; i++) {
-            for(m=0x8000,j=0; j<font->FontWidth; j++, m>>=1) {
-                st7920_DrawPixel(d, d->CurrentX + j, (d->CurrentY + i), (px[i] & m) ? color : !color);
-            }
-        }
-    }
+        //if (ch < 32 || ch > 126) return 0;
+		if(d->d.flags & FONTDRAW_VERTICALDRAW) {
+			px = (uint16_t*)font->data + ((ch-32)*font->FontWidth);
+			for(i = 0; i < font->FontWidth; i++) {
+				for(m=0x8000,j=0; j<font->FontHeight; j++, m>>=1) {
+					st7920_DrawPixel(d, posx + j, (posy + i), (px[i] & m) ? color : !color);
+				}
+			}
+		} else {
+			px = (uint16_t*)font->data + ((ch-32)*font->FontHeight);
+			for(i = 0; i < font->FontHeight; i++) {
+				for(m=0x8000,j=0; j<font->FontWidth; j++, m>>=1) {
+					st7920_DrawPixel(d, posx + j, (posy + i), (px[i] & m) ? color : !color);
+				}
+			}
+		}
+	} else {
+        uint8_t *px, m;
+        //if (ch < 32 || ch > 126) return 0;
+		if(d->d.flags & FONTDRAW_VERTICALDRAW) {
+			px = ((uint8_t*)font->data);
+			if(font->flags & FONT_FLAG_BTAB) px += (ch - 1) * font->FontWidth;
+			else px += (ch - 32) * font->FontWidth;
+			for(i = 0; i < font->FontWidth; i++) {
+				for(m=0x80,j=0; j<font->FontHeight; j++, m>>=1) {
+					st7920_DrawPixel(d, posx + i, (posy + j), (px[i] & m) ? color : !color);
+				}
+			}
+		} else {
+			px = ((uint8_t*)font->data);
+			if(font->flags & FONT_FLAG_BTAB) px += (ch - 1) * font->FontHeight;
+			else px += (ch - 32) * font->FontHeight;
+			for(i = 0; i < font->FontHeight; i++) {
+				for(m=0x80,j=0; j<font->FontWidth; j++, m>>=1) {
+					st7920_DrawPixel(d, posx + j, (posy + i), (px[i] & m) ? color : !color);
+				}
+			}
+		}
+	}
 
-    d->CurrentX += font->FontWidth;
+    d->d.curX += font->FontWidth;
     return ch;
 }
 

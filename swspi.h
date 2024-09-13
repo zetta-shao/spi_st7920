@@ -75,9 +75,9 @@ typedef swspi_stm32_t swspi_t;
 #define swspi_delay_us swspi_hal_delay_us
 #define swspi_delay_ms swspi_hal_delay_ms
 /* functions */
-void swspi_SWinit(swspi_t *d, spi_gpio_t *clk, spi_gpio_t *mosi, spi_gpio_t *miso);
-void swspi_setbits(swspi_t *d, uint8_t val);
-void swspi_HWinit(swspi_t *d, void *hWND);
+int swspi_SWinit(swspi_t *d, spi_gpio_t *clk, spi_gpio_t *mosi, spi_gpio_t *miso);
+int swspi_setbits(swspi_t *d, uint8_t val);
+int swspi_HWinit(swspi_t *d, void *hWND);
 void swspi_read(swspi_t *d, uint8_t *pRead, uint32_t len);
 void swspi_write(swspi_t *d, uint8_t *pWrite, uint32_t len);
 void swspi_readwrite(swspi_t *d, uint8_t *pWrite, uint8_t *pRead, uint32_t len);
@@ -87,14 +87,14 @@ uint8_t swspi_getgpi(spi_gpio_t *gpiogrp);
 void swspi_setgpmode(spi_gpio_t *gpiogrp, uint8_t val);
 //void swspi_setcpol(swspi_t *d, uint8_t val);
 //void swspi_setcpha(swspi_t *d, uint8_t val);
-void swspi_setmode(swspi_t *d, uint8_t val);
-void swspi_setspeed(swspi_t *d, uint32_t val);
+int swspi_setmode(swspi_t *d, uint8_t val);
+int swspi_setspeed(swspi_t *d, uint32_t val);
 void swspi_spifree(swspi_t *d);
 
 // HAL implements
 void swspi_hal_delay_us(uint32_t time);
 void swspi_hal_delay_ms(uint32_t time);
-void swspi_hal_init(swspi_t *d, spi_gpio_t *clk, spi_gpio_t *mosi, spi_gpio_t *miso);
+int swspi_hal_init(swspi_t *d, spi_gpio_t *clk, spi_gpio_t *mosi, spi_gpio_t *miso);
 void swspi_hal_gpio_out(spi_gpio_t *d, uint8_t val);
 uint8_t swspi_hal_gpio_in(spi_gpio_t *d);
 void swspi_hal_gpio_mode(spi_gpio_t *d, uint8_t val);
@@ -103,8 +103,9 @@ int swspi_hal_receive(void *hWND, uint8_t *pRead, uint16_t datasize);
 int swspi_hal_transmit_receive(void *hWND, uint8_t *pRead, uint8_t *pWrite, uint16_t datasize);
 //void swspi_hal_setcpol(swspi_t *d, uint8_t val);
 //void swspi_hal_setcpha(swspi_t *d, uint8_t val);
-void swspi_hal_setmode(swspi_t *d, uint8_t val);
-void swspi_hal_setspeed(swspi_t *d, uint32_t val);
+int swspi_hal_setmode(swspi_t *d, uint8_t val);
+int swspi_hal_setspeed(swspi_t *d, uint32_t val);
+int swspi_hal_setbits(swspi_t *d, uint8_t val);
 void swspi_hal_spiclose(swspi_t *d);
 
 #endif

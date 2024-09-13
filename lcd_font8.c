@@ -393,7 +393,7 @@ FontDef Font_5x7 = {5, 7, 0, 0, (const uint16_t*)font_5x7};
 #endif
 
 #ifdef LCDFONT_INCLUDE_FONT_6x8
-FontDef Font_6x8 = {6, 8, 1, 0, (const uint16_t*)font_6x8};
+FontDef Font_6x8 = {6, 8, FONT_FLAG_VERT|FONT_FLAG_BTAB, 0, (const uint16_t*)font_6x8};
 #endif
 
 #ifdef LCDFONT_INCLUDE_FONT_8x16

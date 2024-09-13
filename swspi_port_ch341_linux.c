@@ -110,24 +110,29 @@ int swspi_hal_transmit_receive(void *hWND, uint8_t *pRead, uint8_t *pWrite, uint
     return res;
 }
 
-void swspi_hal_init(swspi_t *d, spi_gpio_t *clk, spi_gpio_t *mosi, spi_gpio_t *miso) {
+int swspi_hal_init(swspi_t *d, spi_gpio_t *clk, spi_gpio_t *mosi, spi_gpio_t *miso) {
 	(void)d; (void)clk; (void)mosi; (void)miso;
     char *devname = (char*)clk;
     d->CLK.pin = open(devname, O_RDWR);
     d->CLK.port = (void*)&(d->CLK.pin);
     if(d->CLK.pin < 0) { printf("spi init error %ld\n", d->CLK.pin); exit(0); }
-    ioctl(d->CLK.pin, SPI_IOC_WR_MAX_SPEED_HZ, 125000);
+    return ioctl(d->CLK.pin, SPI_IOC_WR_MAX_SPEED_HZ, 125000);
 }
 
-void swspi_hal_setmode(swspi_t *d, uint8_t val) {
+int swspi_hal_setmode(swspi_t *d, uint8_t val) {
     val &= 3;
-    ioctl(*(int32_t*)d->CLK.port, SPI_IOC_WR_MODE, &val);
+    return ioctl(*(int32_t*)d->CLK.port, SPI_IOC_WR_MODE, &val);
 }
 
-void swspi_hal_setspeed(swspi_t *d, uint32_t val) {
-    ioctl(*(int32_t*)d->CLK.port, SPI_IOC_WR_MAX_SPEED_HZ , &val);
+int swspi_hal_setspeed(swspi_t *d, uint32_t val) {
+    return ioctl(*(int32_t*)d->CLK.port, SPI_IOC_WR_MAX_SPEED_HZ , &val);
 }
 
 void swspi_hal_spiclose(swspi_t *d) {
     close(*(int32_t*)d->CLK.port); d->CLK.pin = 65535; d->CLK.port = NULL;
 }
+
+int swspi_hal_setbits(swspi_t *d, uint8_t val) {
+    return ioctl(*(int32_t*)d->CLK.port, SPI_IOC_WR_BITS_PER_WORD, &val);
+}
+

@@ -611,7 +611,7 @@ FontDef Font_6x8 = {6, 8, 0, 0, Font_6x8};
 FontDef Font_7x10 = {7, 10, 0, 0, Font7x10};
 #endif
 #ifdef LCDFONT_INCLUDE_FONT_11x18
-FontDef Font_11x18 = {11, 18, 0, 0, Font11x18};
+FontDef Font_11x18 = {11, 18, FONT_FLAG_WPTR, 0, Font11x18};
 #endif
 #ifdef LCDFONT_INCLUDE_FONT_16x26
 FontDef Font_16x26 = {16, 26, 0, 0, Font16x26};

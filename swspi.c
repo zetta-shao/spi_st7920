@@ -11,23 +11,27 @@
 // sw_spi 初始化
 //void swspi_initial(swspi_t *d) { if (!d) return; d->hal_init(d); }
 
-void swspi_SWinit(swspi_t *d, spi_gpio_t *clk, spi_gpio_t *mosi, spi_gpio_t *miso) {
+int swspi_SWinit(swspi_t *d, spi_gpio_t *clk, spi_gpio_t *mosi, spi_gpio_t *miso) {
     d->cpol = 0;
     d->cpha = 0;
     d->Delay_Time = SWSPI_DELAY;
     d->bitmask = 0x80;
-    swspi_hal_init(d, clk, mosi, miso);
+    return swspi_hal_init(d, clk, mosi, miso);
 }
 
-void swspi_HWinit(swspi_t *d, void *hWND) {
+int swspi_HWinit(swspi_t *d, void *hWND) {
     d->cpol = 0;
     d->cpha = 0;
     d->Delay_Time = 0;
     d->bitmask = 0;
-    swspi_hal_init(d, (spi_gpio_t*)hWND, NULL, NULL);
+    return swspi_hal_init(d, (spi_gpio_t*)hWND, NULL, NULL);
 }
 
-void swspi_setbits(swspi_t *d, uint8_t val) { if(val>0) d->bitmask = 1 << (val-1); else d->bitmask=0; }
+int swspi_setbits(swspi_t *d, uint8_t val) { 
+    if(d->Delay_Time != 0) return swspi_hal_setbits(d, val);
+    else {
+        if(val>0) d->bitmask = 1 << (val-1); else d->bitmask=0; return 0; }
+}
 
 //void swspi_setCLK(swspi_t *d) { d->hal_io_ctl(IOCTL_SWSPI_SET_GPIO_HIGH, &d->CLK); }
 //void swspi_clrCLK(swspi_t *d) { d->hal_io_ctl(IOCTL_SWSPI_SET_GPIO_LOW, &d->CLK); }
@@ -109,7 +113,7 @@ uint16_t __swspi_read(swspi_t *d) {
 
 void swspi_readwrite(swspi_t *d, uint8_t *pWrite, uint8_t *pRead, uint32_t len) {
     uint8_t j;
-    if(d->bitmask == 0) {
+    if(d->Delay_Time != 0) {
         //hwspi_t h = { d->CLK.port, pRead, pWrite, len };
         //d->hal_io_ctl(IOCTL_SWSPI_HWSPI_RW, &h);
         swspi_hal_transmit_receive(d->CLK.port, pRead, pWrite, len);
@@ -125,7 +129,7 @@ void swspi_readwrite(swspi_t *d, uint8_t *pWrite, uint8_t *pRead, uint32_t len) 
 
 void swspi_read(swspi_t *d, uint8_t *pRead, uint32_t len) {
     uint8_t j;
-    if(d->bitmask == 0) { // h/w spi
+    if(d->Delay_Time != 0) { // h/w spi
         //hwspi_t h = { d->CLK.port, pRead, NULL, len };
         //d->hal_io_ctl(IOCTL_SWSPI_HWSPI_READ, &h);
         swspi_hal_receive(d->CLK.port, pRead, len);
@@ -139,7 +143,7 @@ void swspi_read(swspi_t *d, uint8_t *pRead, uint32_t len) {
 
 void swspi_write(swspi_t *d, uint8_t *pWrite, uint32_t len) {
     uint8_t j;
-    if(d->bitmask == 0) { // h/w spi
+    if(d->Delay_Time != 0) { // h/w spi
         //hwspi_t h;
         //h.hWND=d->CLK.port; h.bufout=pWrite; h.bufin=NULL; h.datasize=len;
         //d->hal_io_ctl(IOCTL_SWSPI_HWSPI_WRITE, &h);
@@ -165,6 +169,7 @@ uint8_t swspi_getgpi(spi_gpio_t *gpiogrp) {
 void swspi_setgpmode(spi_gpio_t *gpiogrp, uint8_t val) { swspi_hal_gpio_mode(gpiogrp, val); }
 //void swspi_setcpol(swspi_t *d, uint8_t val) { swspi_hal_setcpol(d, val); }
 //void swspi_setcpha(swspi_t *d, uint8_t val) { swspi_hal_setcpha(d, val); }
-void swspi_setmode(swspi_t *d, uint8_t val) { swspi_hal_setmode(d, val); }
-void swspi_setspeed(swspi_t *d, uint32_t val) { swspi_hal_setspeed(d, val); }
+int swspi_setmode(swspi_t *d, uint8_t val) { return swspi_hal_setmode(d, val); }
+int swspi_setspeed(swspi_t *d, uint32_t val) { return swspi_hal_setspeed(d, val); }
+//int swspi_setbits(swspi_t *d, uint8_t val) { return swspi_hal_setbits(d, val); }
 void swspi_spifree(swspi_t *d) { swspi_hal_spiclose(d); }
